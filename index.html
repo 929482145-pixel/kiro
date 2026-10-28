@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#171914" />
+  <title>叠院 · 空间浏览器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <a class="brand" href="#" aria-label="首页"><span class="brand-mark">叠</span><span>叠院</span></a>
+      <div class="project-meta"><span>住宅空间研究</span><i></i><span>13.2 × 13.1 m</span></div>
+      <button class="icon-btn" id="resetView" aria-label="重置视角" title="重置视角">
+        <svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M5.1 14a7 7 0 0 0 11.6 2.6L20 14M4 10l3.3-2.6A7 7 0 0 1 18.9 10"/></svg>
+      </button>
+    </header>
+
+    <main>
+      <aside class="sidebar">
+        <div class="eyebrow">楼层导航</div>
+        <h1>空间<br><em>逐层展开</em></h1>
+        <p class="intro">从整体形态到每一层的生活细节，拖拽模型自由查看。</p>
+        <nav class="floor-nav" aria-label="楼层选择">
+          <button class="floor-item active" data-view="all"><span class="number">00</span><span><b>整体建筑</b><small>OVERVIEW</small></span><i></i></button>
+          <button class="floor-item" data-view="2"><span class="number">02</span><span><b>二层空间</b><small>PRIVATE FLOOR</small></span><i></i></button>
+          <button class="floor-item" data-view="1"><span class="number">01</span><span><b>一层空间</b><small>LIVING FLOOR</small></span><i></i></button>
+        </nav>
+        <button class="explode-btn" id="explodeBtn"><span class="explode-icon">↕</span><span><b>展开楼层</b><small>EXPLODED VIEW</small></span></button>
+        <div class="hint"><span class="mouse-icon"></span>拖拽旋转 · 滚轮缩放 · 点击楼层聚焦</div>
+      </aside>
+
+      <section class="viewport">
+        <canvas id="scene"></canvas>
+        <div class="view-label"><span id="viewIndex">00</span><div><small>CURRENT VIEW</small><strong id="viewName">整体建筑</strong></div></div>
+        <div class="compass"><span>北</span><i></i></div>
+        <div class="loading" id="loading"><span></span><p>构建空间模型</p></div>
+      </section>
+    </main>
+  </div>
+  <script type="module" src="/src/app.js"></script>
+</body>
+</html>
