@@ -202,12 +202,14 @@ const pointer = new THREE.Vector2();
 let mode = 'all';
 let exploded = false;
 let hovered = null;
+let cameraTransition = false;
 const state = {
   cam: new THREE.Vector3(18, 19, 23),
   target: new THREE.Vector3(0, 1.6, 0),
 };
 
 function setView(view) {
+  cameraTransition = true;
   mode = String(view);
   exploded = false;
   document.querySelector('#explodeBtn').classList.remove('active');
@@ -235,6 +237,7 @@ function setView(view) {
 }
 
 function toggleExplode() {
+  cameraTransition = true;
   exploded = !exploded;
   mode = 'all';
   document.querySelectorAll('.floor-item').forEach((button) => button.classList.remove('active'));
@@ -254,6 +257,12 @@ document.querySelectorAll('.floor-item').forEach((button) => {
 });
 document.querySelector('#explodeBtn').addEventListener('click', toggleExplode);
 document.querySelector('#resetView').addEventListener('click', () => setView('all'));
+
+// Once the user starts orbiting, stop applying preset camera coordinates.
+// OrbitControls then owns the camera, so the chosen angle remains unchanged.
+controls.addEventListener('start', () => {
+  cameraTransition = false;
+});
 
 canvas.addEventListener('pointermove', (event) => {
   const rect = canvas.getBoundingClientRect();
@@ -285,8 +294,15 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.05);
-  camera.position.lerp(state.cam, 1 - Math.exp(-2.4 * delta));
-  controls.target.lerp(state.target, 1 - Math.exp(-2.4 * delta));
+  if (cameraTransition) {
+    camera.position.lerp(state.cam, 1 - Math.exp(-2.4 * delta));
+    controls.target.lerp(state.target, 1 - Math.exp(-2.4 * delta));
+    if (camera.position.distanceTo(state.cam) < 0.01 && controls.target.distanceTo(state.target) < 0.01) {
+      camera.position.copy(state.cam);
+      controls.target.copy(state.target);
+      cameraTransition = false;
+    }
+  }
   controls.update();
   renderer.render(scene, camera);
 }
