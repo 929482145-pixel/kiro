@@ -103,75 +103,98 @@ function segmentedZ(group, x, z1, z2, openings = [], outer = false) {
   if (cursor < z2) wallZ(group, x, cursor, z2, outer);
 }
 
-function addStairs(group) {
-  // Central stair shown at the top of both supplied plans.
-  for (let i = 0; i < 11; i += 1) {
-    box(group, -2.0 + i * 0.4, 0.22 + i * 0.025, -5.73, 0.36, 0.12, 1.52, material.stair);
+// Drawing grid is expressed in metres. The supplied 12100 × 12000 mm axes
+// become a centred Three.js model without changing scale.
+const PLAN_W = 12.1;
+const PLAN_D = 12.0;
+const X0 = PLAN_W / 2;
+const Z0 = PLAN_D / 2;
+const gx = (x) => x - X0;
+const gz = (z) => z - Z0;
+
+function boundaryX(group, x1, x2, z) {
+  box(group, gx((x1 + x2) / 2), 0.38, gz(z), x2 - x1, 0.44, 0.1, material.rail);
+}
+
+function boundaryZ(group, x, z1, z2) {
+  box(group, gx(x), 0.38, gz((z1 + z2) / 2), 0.1, 0.44, z2 - z1, material.rail);
+}
+
+function addStairs(group, level) {
+  // F1 stair occupies the south-east bay; F2 arrives in the left-middle bay.
+  const stair = level === 1
+    ? { x1: 8.3, x2: 12.1, z1: 8.4, z2: 12.0, alongX: false }
+    : { x1: 1.0, x2: 3.8, z1: 4.2, z2: 8.4, alongX: false };
+  const steps = 11;
+  for (let i = 0; i < steps; i += 1) {
+    const depth = (stair.z2 - stair.z1) / steps;
+    box(
+      group,
+      gx((stair.x1 + stair.x2) / 2),
+      0.2 + i * 0.035,
+      gz(stair.z2 - depth * (i + 0.5)),
+      stair.x2 - stair.x1,
+      0.1,
+      depth - 0.025,
+      material.stair,
+    );
   }
-  wallZ(group, -2.48, -6.48, -4.88, false);
-  wallZ(group, 2.48, -6.48, -4.88, false);
-  wallX(group, -2.48, -1.48, -4.88, false);
-  wallX(group, 1.48, 2.48, -4.88, false);
 }
 
-function addBalcony(group) {
-  // Recessed south balcony/entrance, matching the lower centre projection in the plan.
-  wallZ(group, -2.55, 5.22, 6.05, false);
-  wallZ(group, 2.55, 5.22, 6.05, false);
-  wallX(group, -2.55, 2.55, 6.05, false);
-  box(group, 0, 0.06, 5.63, 5.1, 0.12, 0.82, material.floor);
-}
-
-function outerShell(group) {
-  // Stepped outline traced from the 13.2m × 13.1m drawing.
-  segmentedX(group, -2.48, 2.48, -6.48, [[-0.62, 0.62]], true);
-  wallZ(group, -2.48, -6.48, -5.18, true);
-  wallZ(group, 2.48, -6.48, -5.18, true);
-  wallX(group, -4.62, -2.48, -5.18, true);
-  wallX(group, 2.48, 4.62, -5.18, true);
-  wallZ(group, -4.62, -5.18, -1.72, true);
-  wallZ(group, 4.62, -5.18, -1.72, true);
-  wallX(group, -6.62, -4.62, -1.72, true);
-  wallX(group, 4.62, 6.62, -1.72, true);
-  wallZ(group, -6.62, -1.72, 4.9, true);
-  wallZ(group, 6.62, -1.72, 4.9, true);
-  segmentedX(group, -6.62, 6.62, 4.9, [[-2.55, 2.55]], true);
-  wallZ(group, -2.55, 4.9, 5.22, true);
-  wallZ(group, 2.55, 4.9, 5.22, true);
+function outerShell(group, level) {
+  // C-1..C-5 are window gaps; M-1 is the principal south entrance.
+  const northWindows = level === 1
+    ? [[gx(1.35), gx(2.35)], [gx(5.7), gx(6.9)], [gx(9.65), gx(10.75)]] // C-1..C-3
+    : [[gx(1.2), gx(2.4)], [gx(5.75), gx(6.95)], [gx(9.55), gx(10.75)]];
+  segmentedX(group, gx(0), gx(12.1), gz(0), northWindows, true);
+  segmentedZ(group, gx(12.1), gz(0), gz(12.0), [[gz(4.8), gz(6.0)]], true); // C-4
+  segmentedX(group, gx(0), gx(12.1), gz(12.0), level === 1
+    ? [[gx(1.35), gx(2.55)], [gx(5.65), gx(6.65)]] // C-5, M-1
+    : [[gx(1.35), gx(2.55)], [gx(5.0), gx(8.3)]], true); // C-5, balcony opening
+  segmentedZ(group, gx(0), gz(0), gz(12.0), [[gz(8.75), gz(9.95)]], true);
 }
 
 function firstFloorPartitions(group) {
-  // Left bedroom block: two bedrooms and central shared wet/circulation band.
-  segmentedZ(group, -4.18, -5.18, 4.9, [[-4.15, -3.28], [-0.25, 0.62], [3.0, 3.9]]);
-  segmentedX(group, -6.62, -4.18, -1.05, [[-5.92, -5.16]]);
-  segmentedX(group, -6.62, -4.18, 1.26, [[-5.95, -5.2]]);
+  // North: rear court/kitchen and north-east store.
+  segmentedX(group, gx(0), gx(12.1), gz(4.2), [
+    [gx(2.8), gx(3.8)], // M-2
+    [gx(6.35), gx(7.25)], // M-3
+    [gx(9.1), gx(10.0)], // M-4
+  ]);
+  segmentedZ(group, gx(5.0), gz(0), gz(4.2), [[gz(2.55), gz(3.45)]]); // M-5
+  segmentedZ(group, gx(8.3), gz(0), gz(4.2), [[gz(2.45), gz(3.35)]]); // M-6
 
-  // Right block: kitchen at top, bathroom in middle and bedroom below.
-  segmentedZ(group, 4.18, -5.18, 4.9, [[-4.05, -3.18], [-0.35, 0.5], [2.42, 3.3]]);
-  segmentedX(group, 4.18, 6.62, -1.05, [[5.08, 5.82]]);
-  segmentedX(group, 4.18, 6.62, 1.17, [[5.1, 5.82]]);
+  // West bedroom/bathroom, central reception and east dining room.
+  segmentedZ(group, gx(3.8), gz(4.2), gz(12.0), [[gz(5.0), gz(5.9)], [gz(8.75), gz(9.65)]]);
+  segmentedX(group, gx(0), gx(3.8), gz(6.0), [[gx(2.15), gx(3.05)]]); // M-7
+  segmentedZ(group, gx(8.3), gz(4.2), gz(12.0), [[gz(6.15), gz(7.05)], [gz(9.15), gz(10.05)]]);
+  segmentedX(group, gx(8.3), gx(12.1), gz(8.4), [[gx(9.65), gx(10.55)]]);
+  segmentedX(group, gx(3.8), gx(8.3), gz(8.4), [[gx(5.55), gx(6.55)]]);
 
-  // Dining/stair enclosure and central living room boundaries.
-  segmentedX(group, -4.18, -2.48, -4.42, [[-3.5, -2.78]]);
-  segmentedX(group, 2.48, 4.18, -4.42, [[2.83, 3.58]]);
-  segmentedX(group, -4.18, 4.18, -1.05, [[-3.18, -2.25], [-0.62, 0.65], [2.3, 3.2]]);
+  // Front and rear courtyard boundaries remain architectural, not decorative.
+  boundaryX(group, 3.8, 8.3, 11.25);
+  boundaryZ(group, 3.8, 8.4, 11.25);
+  boundaryZ(group, 8.3, 8.4, 11.25);
+  boundaryX(group, 1.0, 5.0, 1.8);
 }
 
 function secondFloorPartitions(group) {
-  // Second floor contains five bedrooms around a central family hall.
-  segmentedZ(group, -4.18, -5.18, 4.9, [[-4.08, -3.22], [-0.22, 0.64], [3.0, 3.88]]);
-  segmentedX(group, -6.62, -4.18, -1.05, [[-5.94, -5.18]]);
-  segmentedX(group, -6.62, -4.18, 1.28, [[-5.96, -5.18]]);
+  // North-centre bedroom and north-east study.
+  segmentedX(group, gx(0), gx(12.1), gz(4.2), [[gx(2.0), gx(2.9)], [gx(6.2), gx(7.1)], [gx(9.25), gx(10.15)]]);
+  segmentedZ(group, gx(3.8), gz(0), gz(4.2), [[gz(2.45), gz(3.35)]]); // M-2
+  segmentedZ(group, gx(8.3), gz(0), gz(4.2), [[gz(2.45), gz(3.35)]]); // M-3
 
-  segmentedZ(group, 4.18, -5.18, 4.9, [[-4.08, -3.2], [-0.28, 0.55], [2.42, 3.3]]);
-  segmentedX(group, 4.18, 6.62, -1.05, [[5.08, 5.82]]);
-  segmentedX(group, 4.18, 6.62, 1.15, [[5.08, 5.82]]);
+  // South-west bedroom, west bathroom/stair, east bedroom and central living room.
+  segmentedZ(group, gx(3.8), gz(4.2), gz(12.0), [[gz(5.0), gz(5.9)], [gz(8.9), gz(9.8)]]); // M-4/M-5
+  segmentedX(group, gx(0), gx(3.8), gz(6.0), [[gx(2.15), gx(3.05)]]); // M-6
+  segmentedX(group, gx(0), gx(3.8), gz(8.4), [[gx(2.0), gx(2.9)]]); // M-7
+  segmentedZ(group, gx(8.3), gz(4.2), gz(12.0), [[gz(6.0), gz(6.9)], [gz(9.0), gz(9.9)]]);
+  segmentedX(group, gx(3.8), gx(8.3), gz(8.4), [[gx(5.55), gx(6.55)]]);
 
-  // Central upper bedroom and family hall, with door openings matching the drawing.
-  segmentedX(group, -4.18, 4.18, -1.05, [[-3.18, -2.28], [-0.68, 0.68], [2.28, 3.18]]);
-  segmentedZ(group, -1.62, -1.05, 4.9, [[0.18, 1.06], [3.36, 4.18]]);
-  segmentedX(group, -1.62, 4.18, 1.08, [[-0.48, 0.5], [2.62, 3.48]]);
-  segmentedX(group, -1.62, 4.18, 4.05, [[0.22, 1.18]]);
+  // South-centre balcony boundary and its slab edge.
+  boundaryZ(group, 5.0, 8.4, 12.0);
+  boundaryZ(group, 8.3, 8.4, 12.0);
+  boundaryX(group, 5.0, 8.3, 11.9);
 }
 
 function makeFloor(level) {
@@ -179,14 +202,12 @@ function makeFloor(level) {
   group.userData.level = level;
   group.position.y = (level - 1) * 2.8;
 
-  // One continuous slab follows the overall dimensions; walls preserve the stepped shell.
-  const slab = box(group, 0, 0.08, -0.64, 13.24, 0.16, 11.68, material.floor, `floor-${level}`);
+  const slab = box(group, 0, 0.08, 0, PLAN_W, 0.16, PLAN_D, material.floor, `floor-${level}`);
   slab.userData.level = level;
   clickable.push(slab);
 
-  outerShell(group);
-  addStairs(group);
-  addBalcony(group);
+  outerShell(group, level);
+  addStairs(group, level);
   if (level === 1) firstFloorPartitions(group);
   else secondFloorPartitions(group);
 
